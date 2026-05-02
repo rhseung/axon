@@ -5,7 +5,19 @@ description = "Autograd engine and neural network framework built from scratch o
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    "matplotlib>=3.10.9",
+    "numpy>=2.4.4",
     "pyrefly>=0.63.1",
     "pytest>=9.0.3",
     "ruff>=0.15.12",
+    "tqdm>=4.67.3",
 ]
+
+[tool.ruff]
+indent-width = 2
+
+[dependency-groups]
+dev = [
+    "scikit-learn>=1.8.0",
+]
+

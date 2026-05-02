@@ -1,6 +1,10 @@
 {
   "cSpell.words": [
     "Autograd",
-    "MNIST"
+    "keepdims",
+    "minibatches",
+    "MNIST",
+    "openml",
+    "randn"
   ]
 }
