@@ -5,19 +5,33 @@ description = "Autograd engine and neural network framework built from scratch o
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    "ipywidgets>=8.1.8",
     "matplotlib>=3.10.9",
     "numpy>=2.4.4",
-    "pyrefly>=0.63.1",
-    "pytest>=9.0.3",
-    "ruff>=0.15.12",
     "tqdm>=4.67.3",
 ]
 
-[tool.ruff]
-indent-width = 2
-
 [dependency-groups]
 dev = [
+    "pyrefly>=0.63.1",
+    "pytest>=9.0.3",
+    "ruff>=0.15.12",
     "scikit-learn>=1.8.0",
 ]
+
+[tool.uv]
+default-groups = ["dev"]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 88
+indent-width = 2
+extend-exclude = ["*.ipynb"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
 
