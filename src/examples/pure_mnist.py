@@ -29,6 +29,40 @@ class SGD(Optimizer):
     X -= dX * self.lr
 
 
+class Adam(Optimizer):
+  def __init__(self, *, lr=0.001, beta1=0.9, beta2=0.999, eps=1e-8):
+    super().__init__(lr=lr)
+    self.beta1 = beta1
+    self.beta2 = beta2
+    self.eps = eps
+
+    self.t = 0  # 스텝 카운터
+    self.m = {}  # 1차 모멘트
+    self.v = {}  # 2차 모멘트
+
+  def step(self, X: NDArray[Any], dX: NDArray[Any]):
+    # 파라미터 식별자로 id 사용
+    param_id = id(X)
+
+    # 처음 보는 파라미터면 초기화
+    if param_id not in self.m:
+      self.m[param_id] = np.zeros_like(X)
+      self.v[param_id] = np.zeros_like(X)
+
+    self.t += 1
+
+    # 모멘트 업데이트
+    self.m[param_id] = self.beta1 * self.m[param_id] + (1 - self.beta1) * dX
+    self.v[param_id] = self.beta2 * self.v[param_id] + (1 - self.beta2) * dX**2
+
+    # Bias correction
+    m_hat = self.m[param_id] / (1 - self.beta1**self.t)
+    v_hat = self.v[param_id] / (1 - self.beta2**self.t)
+
+    # 업데이트
+    X -= self.lr * m_hat / (np.sqrt(v_hat) + self.eps)
+
+
 # ------------------------------------------------------------
 
 
@@ -177,7 +211,29 @@ class Sigmoid(Module):
     assert X is not None, "forward 이전에 backward는 호출할 수 없습니다."
 
     dX = delta * self.forward(X) * (1 - self.forward(X))
+    return dX
 
+  def optimize(self, optimizer: Optimizer):
+    pass
+
+  def format(self, indent: int = 0) -> str:
+    return f"{'  ' * indent}{type(self).__name__}()"
+
+
+class ReLU(Module):
+  def __init__(self):
+    self._cache_X: NDArray[Any] | None = None
+
+  def forward(self, X: NDArray[Any]):
+    self._cache_X = X
+
+    return np.maximum(0, X)
+
+  def backward(self, delta: NDArray[Any]):
+    X = self._cache_X
+    assert X is not None, "forward 이전에 backward는 호출할 수 없습니다."
+
+    dX = delta * (X > 0).astype(np.float32)
     return dX
 
   def optimize(self, optimizer: Optimizer):
