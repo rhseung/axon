@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
+
 import numpy as np
 from numpy.typing import DTypeLike, NDArray
 
+from axon.op import Add, MatMul, Mul
+
 if TYPE_CHECKING:
-  from axon.op import Op, Identity
+  from axon.op import Identity, Op
 
 """
 examples/pure_mnist.py에서 직접 구현할 결과를 바탕으로 추상화를 진행한다.
@@ -26,31 +29,54 @@ cross entropy loss 같은 레이어의 역전파를 수학적으로 계산하여
 
 class Tensor[D: DTypeLike]:
   def __init__(self, data: NDArray[Any], *, dtype: DTypeLike = np.float32):
-    self.data = np.asarray(data, dtype=dtype)
-    self.grad = np.zeros_like(self.data)
-
-    # 이 Tensor는 _inputs, _op의 조합으로 생성되었습니다.
+    self._data = np.asarray(data, dtype=dtype)
     self._op: Op = Identity()
     self._inputs: tuple[Tensor, ...] = ()
 
-  def backward(self, grad: Tensor | None = None):
-    if grad is None:
-      # 역전파의 가장 upstream 값은 ∂loss/∂loss = 1로 지정.
-      grad = Tensor(np.ones_like(self.data))
-    self.grad = grad
+  @classmethod
+  def zeros_like(cls, x: Tensor[D]) -> Tensor[D]:
+    return cls(np.zeros_like(x._data), dtype=x.dtype)
 
-    topological_inputs = []
-    visited = set()
+  @classmethod
+  def ones_like(cls, x: Tensor[D]) -> Tensor[D]:
+    return cls(np.ones_like(x._data), dtype=x.dtype)
 
-    def build(t: Tensor):
-      visited.add(t)
-      for inp in t._inputs:
-        if id(inp) not in visited:
-          build(inp)
+  @property
+  def dtype(self):
+    return self._data.dtype
 
-      topological_inputs.append(t)
+  @property
+  def shape(self):
+    return self._data.shape
 
-    build(self)
+  @property
+  def ndim(self):
+    return self._data.ndim
 
-    for inp in reversed(topological_inputs):
-      inp._op.backward(inp.grad, inp._inputs)
+  @property
+  def T(self):
+    return Tensor(self._data.T, dtype=self.dtype)
+
+  def as_numpy(self):
+    return self._data.copy()
+
+  def copy(self):
+    return Tensor(self.as_numpy(), dtype=self.dtype)
+
+  # TODO: overload
+  def __add__(self, other: Tensor[Any]):
+    return Add()(self, other)
+
+  def __mul__(self, other: Tensor[Any]):
+    return Mul()(self, other)
+
+  def __matmul__(self, other: Tensor[Any]):
+    return MatMul()(self, other)
+
+
+def zeros_like[D: DTypeLike](x: Tensor[D]) -> Tensor[D]:
+  return Tensor.zeros_like(x)
+
+
+def ones_like[D: DTypeLike](x: Tensor[D]) -> Tensor[D]:
+  return Tensor.ones_like(x)
