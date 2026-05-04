@@ -5,10 +5,8 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 from numpy.typing import DTypeLike, NDArray
 
-from axon.op import Add, MatMul, Mul
-
 if TYPE_CHECKING:
-  from axon.op import Identity, Op
+  from axon.operation.op import Op
 
 """
 examples/pure_mnist.py에서 직접 구현할 결과를 바탕으로 추상화를 진행한다.
@@ -30,7 +28,7 @@ cross entropy loss 같은 레이어의 역전파를 수학적으로 계산하여
 class Tensor[D: DTypeLike]:
   def __init__(self, data: NDArray[Any], *, dtype: DTypeLike = np.float32):
     self._data = np.asarray(data, dtype=dtype)
-    self._op: Op = Identity()
+    self._op: Op | None = None
     self._inputs: tuple[Tensor, ...] = ()
 
   @classmethod
@@ -55,7 +53,8 @@ class Tensor[D: DTypeLike]:
 
   @property
   def T(self):
-    return Tensor(self._data.T, dtype=self.dtype)
+    msg = "Tensor.T is not implemented yet."
+    raise NotImplementedError(msg)
 
   def as_numpy(self):
     return self._data.copy()
@@ -63,15 +62,143 @@ class Tensor[D: DTypeLike]:
   def copy(self):
     return Tensor(self.as_numpy(), dtype=self.dtype)
 
-  # TODO: overload
+  def __len__(self) -> int:
+    msg = "Tensor.__len__ is not implemented yet."
+    raise NotImplementedError(msg)
+
+  def __getitem__(self, key: Any):
+    _ = key
+    msg = "Tensor.__getitem__ is not implemented yet."
+    raise NotImplementedError(msg)
+
   def __add__(self, other: Tensor[Any]):
-    return Add()(self, other)
+    from axon.functional import add
+
+    return add(self, other)
+
+  def __radd__(self, other: Tensor[Any]):
+    from axon.functional import add
+
+    return add(other, self)
+
+  def __sub__(self, other: Tensor[Any]):
+    _ = other
+    msg = "Tensor.__sub__ is not implemented yet."
+    raise NotImplementedError(msg)
+
+  def __rsub__(self, other: Tensor[Any]):
+    _ = other
+    msg = "Tensor.__rsub__ is not implemented yet."
+    raise NotImplementedError(msg)
 
   def __mul__(self, other: Tensor[Any]):
-    return Mul()(self, other)
+    from axon.functional import mul
+
+    return mul(self, other)
+
+  def __rmul__(self, other: Tensor[Any]):
+    from axon.functional import mul
+
+    return mul(other, self)
+
+  def __truediv__(self, other: Tensor[Any]):
+    _ = other
+    msg = "Tensor.__truediv__ is not implemented yet."
+    raise NotImplementedError(msg)
+
+  def __rtruediv__(self, other: Tensor[Any]):
+    _ = other
+    msg = "Tensor.__rtruediv__ is not implemented yet."
+    raise NotImplementedError(msg)
+
+  def __pow__(self, other: Tensor[Any]):
+    from axon.functional import pow as tensor_pow
+
+    return tensor_pow(self, other)
 
   def __matmul__(self, other: Tensor[Any]):
-    return MatMul()(self, other)
+    from axon.functional import matmul
+
+    return matmul(self, other)
+
+  def __rmatmul__(self, other: Tensor[Any]):
+    from axon.functional import matmul
+
+    return matmul(other, self)
+
+  def __neg__(self):
+    msg = "Tensor.__neg__ is not implemented yet."
+    raise NotImplementedError(msg)
+
+  def __pos__(self):
+    msg = "Tensor.__pos__ is not implemented yet."
+    raise NotImplementedError(msg)
+
+  def __abs__(self):
+    msg = "Tensor.__abs__ is not implemented yet."
+    raise NotImplementedError(msg)
+
+  def exp(self):
+    raise NotImplementedError("Tensor.exp is not implemented yet.")
+
+  def log(self):
+    raise NotImplementedError("Tensor.log is not implemented yet.")
+
+  def sqrt(self):
+    raise NotImplementedError("Tensor.sqrt is not implemented yet.")
+
+  def sin(self):
+    raise NotImplementedError("Tensor.sin is not implemented yet.")
+
+  def cos(self):
+    raise NotImplementedError("Tensor.cos is not implemented yet.")
+
+  def inv(self):
+    raise NotImplementedError("Tensor.inv is not implemented yet.")
+
+  def reshape(self, shape: tuple[int, ...]):
+    _ = shape
+    raise NotImplementedError("Tensor.reshape is not implemented yet.")
+
+  def transpose(self, axes: tuple[int, ...] | None = None):
+    _ = axes
+    raise NotImplementedError("Tensor.transpose is not implemented yet.")
+
+  def squeeze(self, axis: int | tuple[int, ...] | None = None):
+    _ = axis
+    raise NotImplementedError("Tensor.squeeze is not implemented yet.")
+
+  def unsqueeze(self, axis: int):
+    _ = axis
+    raise NotImplementedError("Tensor.unsqueeze is not implemented yet.")
+
+  def flatten(self, start_dim: int = 0):
+    _ = start_dim
+    raise NotImplementedError("Tensor.flatten is not implemented yet.")
+
+  def sum(self, axis: int | tuple[int, ...] | None = None, *, keepdims: bool = False):
+    _ = (axis, keepdims)
+    raise NotImplementedError("Tensor.sum is not implemented yet.")
+
+  def mean(self, axis: int | tuple[int, ...] | None = None, *, keepdims: bool = False):
+    _ = (axis, keepdims)
+    raise NotImplementedError("Tensor.mean is not implemented yet.")
+
+  def max(self, axis: int | tuple[int, ...] | None = None, *, keepdims: bool = False):
+    _ = (axis, keepdims)
+    raise NotImplementedError("Tensor.max is not implemented yet.")
+
+  def maximum(self, other: Tensor[Any]):
+    _ = other
+    raise NotImplementedError("Tensor.maximum is not implemented yet.")
+
+  def gather(self, indices: Tensor[Any], axis: int):
+    _ = (indices, axis)
+    raise NotImplementedError("Tensor.gather is not implemented yet.")
+
+  def where(self, x: Tensor[Any], y: Tensor[Any]):
+    _ = (x, y)
+    raise NotImplementedError("Tensor.where is not implemented yet.")
 
 
 def zeros_like[D: DTypeLike](x: Tensor[D]) -> Tensor[D]:

@@ -1,4 +1,9 @@
 {
+  "workbench.iconTheme": "flow-dim",
+  "flow-icons.folders.associations": {
+    "functional": "folder-function",
+    "src/axon/functional": "folder-function"
+  },
   "cSpell.words": [
     "Autograd",
     "keepdims",

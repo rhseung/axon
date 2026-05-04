@@ -31,6 +31,9 @@ def backward[D: DTypeLike](loss: Tensor[D]):
     if grad is None:  # 위상 정렬하기에 t는 loss부터 나와서 괜찮음.
       continue
 
+    if t._op is None:
+      continue
+
     input_grads = t._op.backward(grad, *t._inputs)
 
     for inp, inp_grad in zip(t._inputs, input_grads):
