@@ -1,3 +1,7 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "axon"
 version = "0.1.0"
@@ -11,16 +15,36 @@ dependencies = [
     "tqdm>=4.67.3",
 ]
 
+[tool.hatch.build.targets.wheel]
+packages = ["src/axon"]
+
+[project.optional-dependencies]
+mlx = ["mlx>=0.31.0"]
+cuda = ["cupy-cuda12x"]
+
 [dependency-groups]
 dev = [
+    "mlx>=0.31.0",
     "pyrefly>=0.63.1",
     "pytest>=9.0.3",
     "ruff>=0.15.12",
     "scikit-learn>=1.8.0",
+    "types-tqdm>=4.66.0",
 ]
 
 [tool.uv]
 default-groups = ["dev"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "cuda: tests that require a CUDA-capable GPU (skipped on macOS / non-NVIDIA)",
+]
+
+[tool.pyrefly]
+# cupy 는 macOS 에서 설치 불가 (CUDA 의존). 이 타입 체크는 외부 환경에서 돌리고
+# 로컬에선 missing-import 무시.
+replace-imports-with-any = ["cupy", "cupy.*"]
 
 [tool.ruff]
 target-version = "py314"

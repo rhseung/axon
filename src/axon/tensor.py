@@ -67,6 +67,13 @@ class Tensor[D: DTypeLike]:
     raise NotImplementedError(msg)
 
   def __getitem__(self, key: Any):
+    # TODO(bool-mask): bool mask 인덱싱 지원 추가 필요.
+    #   - NumPy 백엔드는 native 지원 (arr[mask] 직접 동작)
+    #   - MLX 백엔드는 미지원 — Tensor 레벨에서 우회 필요:
+    #     1. mask 가 bool array 이면 같은 길이 정수 인덱스로 변환 후 take
+    #     2. 또는 가변 길이 출력이 아니라 mask 적용이 목적이면 xp.where 권장
+    #   - axon/backend/test_backends.py::test_bool_mask_via_where 참고
+    #   - backward 도 별도 처리 필요 (mask 가 forward 에 grad 전달 안 함)
     _ = key
     msg = "Tensor.__getitem__ is not implemented yet."
     raise NotImplementedError(msg)

@@ -1,10 +1,10 @@
-from abc import abstractmethod
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import Any
+
 import numpy as np
 from numpy.typing import NDArray
-from tqdm.auto import tqdm
 from sklearn.datasets import fetch_openml
+from tqdm.auto import tqdm
 
 
 class Optimizer(ABC):

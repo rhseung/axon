@@ -12,7 +12,9 @@ class Pow[D: DTypeLike](BinaryOp[D]):
     """거듭제곱 순전파 y = a ** b (원소별) 를 계산한다."""
     return Tensor(a._data**b._data)
 
-  def backward_binary(self, grad: Tensor[D], a: Tensor[D], b: Tensor[D]) -> tuple[Tensor[D], Tensor[D]]:
+  def backward_binary(
+    self, grad: Tensor[D], a: Tensor[D], b: Tensor[D]
+  ) -> tuple[Tensor[D], Tensor[D]]:
     """y = a ** b 의 체인룰 (원소별).
 
     ∂y/∂a = b * a ** (b - 1), ∂y/∂b = a ** b * log(a).

@@ -19,5 +19,9 @@
       "source.fixAll": "explicit",
       "source.organizeImports": "explicit"
     }
-  }
+  },
+  "basedpyright.analysis.diagnosticMode": "off",
+  "basedpyright.disableLanguageServices": true,
+  "basedpyright.disableOrganizeImports": true,
+  "python.analysis.typeCheckingMode": "off"
 }

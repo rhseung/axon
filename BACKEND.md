@@ -16,13 +16,20 @@
 ## 파일 구조
 
 ```
-axon/backend/
-├── __init__.py      # set_backend, get_backend, 현재 백엔드 노출
-├── protocol.py      # BackendProtocol 정의
-├── _numpy.py        # NumPy 구현 (기준)
-├── _mlx.py          # MLX 구현 + 특이사항 처리
-└── _cupy.py         # CuPy 구현 (옵션)
+axon/
+├── dtype.py             # DType enum — 공개 API. Tensor 제네릭 bound.
+└── backend/
+    ├── __init__.py      # set_backend, get_backend, xp 프록시 노출
+    ├── protocol.py      # Array / BackendProtocol / RandomProtocol 정의
+    ├── _dtype.py        # axon DType ↔ 백엔드 native dtype 매핑
+    ├── _numpy.py        # NumPy 구현 (기준)
+    ├── _mlx.py          # MLX 구현 + MLXArray 래퍼
+    └── _cupy.py         # CuPy 구현 (옵션)
 ```
+
+`DType` 은 `axon/dtype.py` 에서 정의하고 `axon/__init__.py` 에서 재노출한다.
+사용자가 `from axon import DType` 또는 `axon.DType.FLOAT32` 처럼 직접 쓸 수 있도록 공개 API다.
+`Tensor` 의 제네릭도 `class Tensor[D: DType]` 로 axon `DType` 을 bound 한다.
 
 ---
 
@@ -80,7 +87,7 @@ class Tensor(ArrayLike):           # 실제 클래스, Protocol 아님
 # axon/backend/protocol.py
 
 from typing import Protocol, Any
-from numpy.typing import DTypeLike
+from axon.dtype import DType
 
 
 class Array(Protocol):
@@ -99,7 +106,7 @@ class Array(Protocol):
     def ndim(self) -> int: ...
 
     @property
-    def dtype(self) -> Any: ...
+    def dtype(self) -> DType: ...   # axon DType (native dtype 아님 — 백엔드 구현이 매핑)
 
     # --- 산술 연산자 ---
     def __add__(self, other: "Array | float") -> "Array": ...
@@ -131,7 +138,7 @@ class Array(Protocol):
     def T(self) -> "Array": ...
 
     def tolist(self) -> list: ...
-    def astype(self, dtype: DTypeLike) -> "Array": ...
+    def astype(self, dtype: DType) -> "Array": ...
 
 
 class BackendProtocol(Protocol):
@@ -141,14 +148,14 @@ class BackendProtocol(Protocol):
     """
 
     # --- 생성 ---
-    def array(self, data: Any, dtype: DTypeLike = ...) -> Array: ...
-    def zeros(self, shape: tuple, dtype: DTypeLike = ...) -> Array: ...
-    def ones(self, shape: tuple, dtype: DTypeLike = ...) -> Array: ...
-    def full(self, shape: tuple, fill_value: float, dtype: DTypeLike = ...) -> Array: ...
+    def array(self, data: Any, dtype: DType = ...) -> Array: ...
+    def zeros(self, shape: tuple, dtype: DType = ...) -> Array: ...
+    def ones(self, shape: tuple, dtype: DType = ...) -> Array: ...
+    def full(self, shape: tuple, fill_value: float, dtype: DType = ...) -> Array: ...
     def full_like(self, x: Array, fill_value: float) -> Array: ...
     def zeros_like(self, x: Array) -> Array: ...
     def ones_like(self, x: Array) -> Array: ...
-    def eye(self, n: int, dtype: DTypeLike = ...) -> Array: ...
+    def eye(self, n: int, dtype: DType = ...) -> Array: ...
     def arange(self, *args, **kwargs) -> Array: ...
 
     # --- 수학 함수 ---
@@ -206,21 +213,25 @@ class BackendProtocol(Protocol):
     def to_numpy(self, x: Array) -> "np.ndarray": ...
     def from_numpy(self, x: "np.ndarray") -> Array: ...
 
+    # --- 난수 ---
+    @property
+    def random(self) -> "RandomProtocol": ...   # NumPy 의 np.random 패턴 — 백엔드 인스턴스가 보유
+
 
 class RandomProtocol(Protocol):
-    """난수 생성 — 가중치 초기화와 Dropout에 필요."""
+    """난수 생성 — 가중치 초기화와 Dropout에 필요. `BackendProtocol.random` 으로 접근."""
 
-    def normal(self, shape: tuple, mean: float = 0.0, std: float = 1.0, dtype: DTypeLike = ...) -> Array: ...
-    def uniform(self, shape: tuple, low: float = 0.0, high: float = 1.0, dtype: DTypeLike = ...) -> Array: ...
-    def bernoulli(self, p: float, shape: tuple, dtype: DTypeLike = ...) -> Array: ...   # Dropout 마스크
+    def normal(self, shape: tuple, mean: float = 0.0, std: float = 1.0, dtype: DType = ...) -> Array: ...
+    def uniform(self, shape: tuple, low: float = 0.0, high: float = 1.0, dtype: DType = ...) -> Array: ...
+    def bernoulli(self, p: float, shape: tuple, dtype: DType = ...) -> Array: ...   # Dropout 마스크
     def seed(self, s: int) -> None: ...
 ```
 
-각 백엔드는 `BackendProtocol`과 `RandomProtocol`을 모두 구현한다.
-`xp`로 일반 연산, `xp.random`으로 난수 생성에 접근한다.
+각 백엔드는 `BackendProtocol`을 구현하고, `random` 속성으로 `RandomProtocol` 인스턴스를 보유한다.
+`xp` 로 일반 연산, `xp.random` 으로 난수 생성에 접근한다 (NumPy 의 `np.random` 패턴).
 
 ```python
-import axon.backend as xp
+from axon.backend import xp
 
 # 일반 연산
 xp.tril(xp.ones((T, T)))             # causal mask
@@ -229,8 +240,6 @@ xp.var(x, axis=-1, keepdims=True)    # LayerNorm
 # 난수
 xp.random.normal((out, in_), std=0.02)   # GPT-2 초기화
 xp.random.bernoulli(0.1, x.shape)        # Dropout 마스크
-```
-
 ```
 
 ### 역할 분리
@@ -252,18 +261,23 @@ class Exp(UnaryOp):
 
 ---
 
-## `__init__.py` — 백엔드 전환 및 `xp` alias
+## `__init__.py` — 백엔드 전환 및 `xp` 프록시
 
 ### `xp` 컨벤션
 
-NumPy/CuPy 커뮤니티에서 array library를 통칭할 때 `xp`를 쓰는 게 관례야.
-axon도 이 컨벤션을 따른다. `__getattr__`로 위임해 `set_backend()` 이후에도 자동 반영된다.
+NumPy/CuPy 커뮤니티에서 array library를 통칭할 때 `xp` 를 쓰는 게 관례다.
+axon 도 이 컨벤션을 따른다. 다만 **모듈 `__getattr__` 위임은 쓰지 않는다** —
+정적 타입 분석이 `Any` 로 죽기 때문에 pyrefly/IDE 자동완성이 동작하지 않는다.
+
+대신 `BackendProtocol` 을 흉내내는 **프록시 객체** 를 만들어 `xp` 라는 이름으로 노출한다.
+프록시는 `__getattribute__` 로 매번 현재 백엔드에 위임하므로 `set_backend()` 이후에도 자동 반영된다.
+정적 타입에선 `xp: BackendProtocol` 로 보이므로 `xp.exp`, `xp.random.normal` 등이 모두 타입 추론된다.
 
 ```python
 # axon/backend/__init__.py
 
 from __future__ import annotations
-from typing import Literal
+from typing import Literal, cast
 from axon.backend.protocol import BackendProtocol
 
 _current: BackendProtocol | None = None
@@ -299,23 +313,32 @@ def current() -> BackendProtocol:
     return _current  # type: ignore
 
 
-def __getattr__(name: str):
-    """import axon.backend as xp 후 xp.exp(x) 호출 시 current().exp(x)로 위임.
+class _BackendProxy:
+    """현재 백엔드 인스턴스에 모든 속성 접근을 위임한다.
 
-    set_backend() 이후 변경도 자동 반영된다.
+    `xp.exp(x)` → `current().exp(x)` 로 자동 위임.
+    `set_backend()` 이후에도 같은 `xp` 변수가 새 백엔드를 가리킨다.
     """
-    return getattr(current(), name)
+
+    __slots__ = ()
+
+    def __getattribute__(self, name: str):
+        return getattr(current(), name)
+
+
+# 정적 타입은 BackendProtocol 로 보이지만 런타임은 프록시.
+xp: BackendProtocol = cast(BackendProtocol, _BackendProxy())
 
 
 # 기본 백엔드 초기화
 set_backend("numpy")
 ```
 
-Op은 `import axon.backend as xp` 하나만 import한다.
+Op 은 프록시를 import 해서 쓴다.
 
 ```python
 # Op 구현 예시
-import axon.backend as xp
+from axon.backend import xp
 
 class Exp(UnaryOp):
     def forward(self, x):
@@ -329,7 +352,8 @@ class Sum(UnaryOp):
         return Tensor(xp.sum(x._data, axis=self.axis, keepdims=self.keepdims))
 ```
 
-`xp.exp(x)` 대신 `xp.exp(x)` — 훨씬 자연스럽고 NumPy 코드와 동일한 패턴이야.
+`current().exp(x)` 대신 `xp.exp(x)` — 짧고, NumPy 코드와 동일한 패턴이며,
+`xp: BackendProtocol` 정적 타입 덕에 `pyrefly` / IDE 가 모든 멤버를 추론한다.
 
 ---
 
@@ -500,7 +524,10 @@ class MLXBackend:
     def take(self, x, indices, axis=None): return mx.take(x, indices, axis)
 
     # --- 변환 ---
-    def to_numpy(self, x): return mx.eval(x) or x.tolist()  # mx array → numpy
+    def to_numpy(self, x):
+        import numpy as np
+        mx.eval(x)            # lazy → 실제 값 강제
+        return np.array(x)    # mx.array는 __array__ 지원
     def from_numpy(self, x):
         import numpy as np
         return mx.array(np.asarray(x))
@@ -510,185 +537,88 @@ class MLXBackend:
         mx.eval(*arrays)
 ```
 
-### In-place 문제 해결 — MLXArray 래퍼
+### In-place / `__setitem__` / lazy eval
 
-MLX array를 그대로 `Tensor._data`로 쓰면 `+=`가 안 된다.
-`**MLXArray` 래퍼**를 만들어 `__iadd__`가 내부에서 재할당을 처리하게 한다.
-`backward()`, `Parameter`는 NumPy와 완전히 동일하게 쓸 수 있다.
+**MLX 0.31+ 에서는 별도 래퍼가 필요없다.** `mx.array` 가 다음을 모두 native 로 지원한다:
 
-```python
-# axon/backend/_mlx.py
+- `arr[idx] = value` (실제로 in-place — `id()` 가 동일하게 유지됨)
+- `arr += other`, `-=`, `*=` (in-place)
+- `np.array(mx_array)` (자동 변환)
 
-import mlx.core as mx
-import numpy as np
-
-
-class MLXArray:
-    """mx.array를 감싸 in-place 연산과 lazy eval을 투명하게 처리.
-
-    - __iadd__, __isub__ 등이 내부 재할당으로 in-place를 시뮬레이션한다.
-    - as_numpy(), tolist() 등 값을 실제로 읽을 때 mx.eval()을 호출한다.
-    - 호출자는 NumPy ndarray와 동일하게 쓸 수 있다.
-    """
-
-    __slots__ = ("_mx",)
-
-    def __init__(self, data: mx.array):
-        self._mx = data
-
-    # --- 속성 ---
-    @property
-    def shape(self) -> tuple[int, ...]:
-        return tuple(self._mx.shape)
-
-    @property
-    def ndim(self) -> int:
-        return self._mx.ndim
-
-    @property
-    def dtype(self):
-        return self._mx.dtype
-
-    @property
-    def T(self) -> "MLXArray":
-        return MLXArray(self._mx.T)
-
-    # --- In-place 연산 (재할당을 내부에서 처리) ---
-    def __iadd__(self, other: "MLXArray | float") -> "MLXArray":
-        rhs = other._mx if isinstance(other, MLXArray) else other
-        self._mx = self._mx + rhs   # 재할당은 여기서
-        return self                  # self를 반환 → 호출자 재할당 불필요
-
-    def __isub__(self, other: "MLXArray | float") -> "MLXArray":
-        rhs = other._mx if isinstance(other, MLXArray) else other
-        self._mx = self._mx - rhs
-        return self
-
-    def __imul__(self, other: "MLXArray | float") -> "MLXArray":
-        rhs = other._mx if isinstance(other, MLXArray) else other
-        self._mx = self._mx * rhs
-        return self
-
-    # --- 일반 연산 ---
-    def __add__(self, other): ...
-    def __mul__(self, other): ...
-    def __matmul__(self, other): ...
-    def __neg__(self): ...
-    # (나머지 연산자 동일 패턴)
-
-    # --- 인덱싱 ---
-    def __getitem__(self, idx):
-        return MLXArray(self._mx[idx])
-
-    def __setitem__(self, idx, value):
-        # MLX는 setitem도 없음 — at[].set() 패턴으로 처리
-        rhs = value._mx if isinstance(value, MLXArray) else value
-        self._mx = self._mx.at[idx].set(rhs)
-
-    # --- 변환 (값을 실제로 읽을 때 eval) ---
-    def tolist(self) -> list:
-        mx.eval(self._mx)
-        return self._mx.tolist()
-
-    def astype(self, dtype) -> "MLXArray":
-        return MLXArray(self._mx.astype(dtype))
-
-    def __array__(self, dtype=None):
-        """np.asarray(mlx_array) 지원 — eval 자동 호출."""
-        mx.eval(self._mx)
-        arr = np.array(self._mx.tolist())
-        return arr.astype(dtype) if dtype else arr
-```
-
-이제 `MLXBackend`는 `MLXArray`를 반환한다.
+따라서 `MLXBackend` 는 `mx.array` 를 그대로 반환하고, `Tensor._data` 도 `mx.array` 를 직접 보유한다.
+`backward()` 의 grad 누적(`grads[id(inp)] += ig._data`) 도 NumPy 와 완전히 동일하게 동작한다.
 
 ```python
 class MLXBackend:
-    def zeros_like(self, x: MLXArray) -> MLXArray:
-        return MLXArray(mx.zeros_like(x._mx))
-
-    def exp(self, x: MLXArray) -> MLXArray:
-        return MLXArray(mx.exp(x._mx))
-
-    def accumulate(self, target, delta):
-        target += delta   # MLXArray.__iadd__ 호출 — 내부에서 재할당
-        return target
-
-    def eval_grads(self, *arrays):
-        pass   # MLXArray는 읽을 때 자동 eval — 별도 호출 불필요
+    def zeros_like(self, x): return mx.zeros_like(x)
+    def exp(self, x): return mx.exp(x)
+    def to_numpy(self, x):
+        mx.eval(x)         # lazy → 강제 평가
+        return np.array(x)
 ```
 
-`**backward()`는 NumPy와 완전히 동일하다.**
+#### MLX 가 NumPy 와 다른 부분 (래퍼 없이 직접 우회)
 
-```python
-# axon/backward.py — 백엔드 분기, accumulate_grad, eval_grads 전혀 없음
-def backward(loss: Tensor):
-    grads: dict[int, Array] = {}
-    grads[id(loss)] = xp.ones_like(loss._data)
+| 항목 | 처리 |
+|---|---|
+| Lazy eval | `to_numpy()` / `eval()` 에서만 `mx.eval()` 강제 |
+| `mx.flip` 부재 | 슬라이싱 (`x[::-1]`) 으로 직접 구현 |
+| `bfloat16` ↔ NumPy 호환 | NumPy 에는 native bfloat16 없음 — `_dtype.py` 매핑에서 fp32 로 대체 |
 
-    for node in reversed(topological_order(loss)):
-        g = grads.get(id(node))
-        if g is None:
-            continue
+#### 만약 MLX 가 immutable 로 회귀하면
 
-        input_grads = node._op.backward(Tensor(g), *node._inputs)
-
-        for inp, ig in zip(node._inputs, input_grads):
-            if id(inp) not in grads:
-                grads[id(inp)] = xp.zeros_like(inp._data)
-            grads[id(inp)] += ig._data          # ← NumPy와 동일
-
-            if isinstance(inp, Parameter):
-                inp.grad._data += ig._data      # ← NumPy와 동일
-```
-
-`**Parameter`도 특별한 처리가 전혀 없다.**
-
-```python
-class Parameter(Tensor):
-    def zero_grad(self):
-        self.grad = Tensor(xp.zeros_like(self._data))
-
-    # accumulate_grad 같은 메서드 불필요
-```
+과거 MLX 버전에서는 `__setitem__` / `__iadd__` 가 없었다.
+그 경우 `MLXArray` 래퍼로 재할당 시뮬레이션이 필요하지만,
+현재 버전 (0.31+) 에서는 불필요하므로 추가하지 않는다.
 
 ### Lazy eval 시점
 
-`mx.eval()`은 `MLXArray.__array__()` 또는 `tolist()`에서 자동 호출된다.
-`as_numpy()`, `loss.item()`, 로깅 등 실제로 값을 읽는 시점에만 발생한다.
-`backward()` 안에서 명시적으로 eval을 호출할 필요가 없다.
+`mx.eval()` 은 `to_numpy()` / `eval()` 메서드에서 명시적으로 호출한다.
+사용자 코드에서 값을 실제로 읽는 시점 — `Tensor.as_numpy()`, `Tensor.item()`, 로깅 등 — 에 한해 발생한다.
+`backward()` 안에서 명시적으로 eval 을 호출할 필요는 없다 (다음 forward 까지 lazy 그래프가 누적되며,
+다음 사용 시점에 한 번에 eval).
 
 ---
 
-## dtype — Enum + 백엔드 매핑
+## DType — 공개 Enum + 백엔드 매핑
 
 문자열이나 `np.float32` 같은 백엔드 종속 타입 대신 axon 전용 `DType` Enum을 사용한다.
-백엔드별 실제 dtype은 매핑 테이블에서 관리한다.
+**`DType` 은 공개 API** 다 — `from axon import DType` 으로 직접 import 가능하고,
+`Tensor` 의 제네릭도 `class Tensor[D: DType]` 로 이걸 bound 한다.
+`Tensor.dtype` 은 axon `DType` 을 반환한다.
+한편 `Array.dtype` 은 백엔드 native (`np.dtype` / `mx.Dtype` / `cp.dtype`) 그대로 노출된다 —
+np/mx/cp 를 직접 wrap 하지 않기 위함이고, 사용자 surface 에는 노출되지 않으므로 무방하다.
+Tensor 가 `from_backend_dtype()` 으로 native → axon DType 변환을 담당한다.
+
+파일은 두 곳으로 분리한다:
+
+- `axon/dtype.py` — `DType` enum 자체. 다른 axon 코드가 자유롭게 import.
+- `axon/backend/_dtype.py` — `DType` ↔ 백엔드 native 타입 매핑 + `to_backend_dtype()`.
 
 ### 지원 dtype
 
-세 백엔드의 교집합 + MLX 제외 예외 항목으로 구성한다.
+세 백엔드의 교집합 + 백엔드별 예외로 구성한다 (MLX 0.31 / Apple Metal 기준 실측).
 
+| axon DType | NumPy | MLX | CuPy | 비고 |
+| --- | --- | --- | --- | --- |
+| FLOAT16 | ✓ | ✓ | ✓ | |
+| BFLOAT16 | △ (fp32 로 대체) | ✓ | ✗ | NumPy 는 native bfloat16 없음 — fp32 매핑. CuPy 미지원. |
+| FLOAT32 | ✓ | ✓ | ✓ | 기본값 |
+| FLOAT64 | ✓ | ✗ | ✓ | MLX 는 GPU 미지원 (CPU stream 만 가능) — 차단. |
+| INT32 | ✓ | ✓ | ✓ | |
+| INT64 | ✓ | ✓ | ✓ | |
+| BOOL | ✓ | ✓ | ✓ | |
 
-| axon DType | NumPy | MLX | CuPy | 비고                      |
-| ---------- | ----- | --- | ---- | ----------------------- |
-| FLOAT16    | ✓     | ✓   | ✓    |                         |
-| BFLOAT16   | ✓     | ✓   | ✗    | CuPy 미지원 — MLX 전용       |
-| FLOAT32    | ✓     | ✓   | ✓    | 기본값                     |
-| FLOAT64    | ✓     | ✗   | ✓    | MLX 미지원 — NumPy/CuPy 전용 |
-| INT32      | ✓     | ✓   | ✓    |                         |
-| INT64      | ✓     | ✗   | ✓    | MLX 미지원 — NumPy/CuPy 전용 |
-| BOOL       | ✓     | ✓   | ✓    |                         |
+MLX 에서 `FLOAT64`, CuPy 에서 `BFLOAT16` 을 사용하면 즉시 `TypeError`.
+폴백 없음 — 잘못된 dtype 은 조용히 넘어가지 않는다.
+fp64 가 필요한 경우 (예: numerical gradient check) 는 NumPy 백엔드를 쓴다.
 
-
-MLX에서 `FLOAT64`, `INT64`, `BFLOAT16`(CuPy 제외) 을 사용하면 즉시 에러.
-폴백 없음 — 잘못된 dtype은 조용히 넘어가지 않는다.
+> **CuPy 와 bfloat16** — CuPy 는 `cupy.bfloat16` top-level export 가 없다 (numpy 1.x 가 native bfloat16 부재인 데 따른 것). 부분 지원이 `ml_dtypes` 패키지 + CUDA ≥ 12.2 + NumPy ≥ 2.1.2 조합에서만 가능하므로, 디폴트 정책으로는 차단한다. 향후 옵션화 여지 있음.
 
 ```python
-# axon/backend/_dtype.py
+# axon/dtype.py — 공개 API
 
 from enum import Enum, auto
-from typing import Any
 
 
 class DType(Enum):
@@ -699,12 +629,20 @@ class DType(Enum):
     INT32    = auto()
     INT64    = auto()
     BOOL     = auto()
+```
+
+```python
+# axon/backend/_dtype.py — 백엔드 native 타입과의 매핑
+
+from typing import Any
+from axon.dtype import DType
+from axon.backend import get_backend
 
 
 # 백엔드별 미지원 dtype — 사용 시 즉시 TypeError
 _UNSUPPORTED: dict[str, set[DType]] = {
     "numpy": set(),
-    "mlx":   {DType.FLOAT64, DType.INT64, DType.BFLOAT16},
+    "mlx":   {DType.FLOAT64},   # GPU 미지원 (CPU stream 만 동작)
     "cupy":  {DType.BFLOAT16},
 }
 
@@ -729,8 +667,9 @@ def _build_mlx_map():
         DType.BFLOAT16: mx.bfloat16,
         DType.FLOAT32:  mx.float32,
         DType.INT32:    mx.int32,
+        DType.INT64:    mx.int64,
         DType.BOOL:     mx.bool_,
-        # FLOAT64, INT64 없음 — to_backend_dtype에서 에러
+        # FLOAT64 없음 — _UNSUPPORTED 에서 차단 (GPU 미지원)
     }
 
 
@@ -743,7 +682,7 @@ def _build_cupy_map():
         DType.INT32:    cp.int32,
         DType.INT64:    cp.int64,
         DType.BOOL:     cp.bool_,
-        # BFLOAT16 없음 — to_backend_dtype에서 에러
+        # BFLOAT16 없음 — to_backend_dtype 에서 에러
     }
 
 
@@ -755,9 +694,9 @@ _DTYPE_BUILDERS = {
 
 
 def to_backend_dtype(dtype: DType) -> Any:
-    """axon DType → 현재 백엔드의 실제 dtype 타입으로 변환.
+    """axon DType → 현재 백엔드의 실제 dtype 으로 변환.
 
-    미지원 dtype은 폴백 없이 즉시 TypeError.
+    미지원 dtype 은 폴백 없이 즉시 TypeError.
     """
     name = get_backend()
     if dtype in _UNSUPPORTED[name]:
@@ -766,6 +705,22 @@ def to_backend_dtype(dtype: DType) -> Any:
             f"Switch to a supported backend first: axon.set_backend('numpy')"
         )
     return _DTYPE_BUILDERS[name]()[dtype]
+
+
+def from_backend_dtype(native: Any) -> DType:
+    """백엔드 native dtype → axon DType. Array.dtype 구현에서 사용."""
+    name = get_backend()
+    for dt, n in _DTYPE_BUILDERS[name]().items():
+        if n == native:
+            return dt
+    raise TypeError(f"Unknown native dtype: {native!r} on backend {name!r}")
+```
+
+`axon/__init__.py` 에서 재노출하면 사용자가 `axon.DType.FLOAT32` 로 직접 쓸 수 있다.
+
+```python
+# axon/__init__.py
+from axon.dtype import DType
 ```
 
 numerical gradient check처럼 float64가 필요한 경우 NumPy나 CuPy 백엔드를 명시적으로 사용한다.
@@ -826,18 +781,29 @@ def check_gradients(model, x, backend_override="numpy"):
 
 ## 의존 순서
 
-```
-BackendProtocol 정의
-    → NumpyBackend 구현
-    → Tensor._data 타입을 Array로 추상화
-    → Op들이 xp.xxx 호출로 변경
-    → backward() in-place 분기 추가
-    → 백엔드 동일 결과 테스트
-    → MLXBackend 구현
-    → lazy eval 처리
-    → @axon.jit (mx.compile 위임)
-    → CuPyBackend (옵션)
+지금 백엔드 추상화를 끝까지 박고 — 프론트(`Tensor`/`Op`/`functional`) 도 한 번에 갈아끼운다.
+세 백엔드 모두 구현하되, **로컬 개발 루프(macOS)는 NumPy ↔ MLX 로 회전**하고
+CuPy 는 외장 GPU / Colab / Windows 등 NVIDIA 환경에서 별도로 검증한다.
+
+```text
+1. axon/dtype.py — DType enum (공개)
+2. axon/backend/protocol.py — Array / BackendProtocol / RandomProtocol
+3. axon/backend/_dtype.py — to_backend_dtype / from_backend_dtype
+4. axon/backend/_numpy.py — NumpyBackend (기준 구현)
+5. axon/backend/_mlx.py — MLXArray 래퍼 + MLXBackend
+6. axon/backend/_cupy.py — CuPyBackend
+7. axon/backend/__init__.py — set_backend, xp 프록시
+8. 프론트 마이그레이션:
+   - Tensor[D: DType] / Tensor._data: Array 로 변경
+   - 기존 Op 들 (Add/Mul/Pow/MatMul) 의 np 직접 참조 → xp 로 교체
+   - functional / parameter / backward 도 동일하게 교체
+9. 테스트:
+   - 로컬 (macOS): NumPy ↔ MLX parity, DType 매핑, MLXArray in-place 누적
+   - 원격 (Colab / Windows): NumPy ↔ CuPy parity (pytest 마커로 분리)
+10. @axon.jit (mx.compile / cuda graph 위임) — 선택
 ```
 
-NumPy를 완전히 동작하게 만든 뒤 MLX를 붙인다.
-Op 구현체는 `xp.xxx`만 호출하므로 백엔드 교체 시 수정 불필요.
+Op 구현체는 `xp.xxx` 만 호출하므로 백엔드 교체 시 수정 불필요한 것이 검증의 기준이다.
+
+CUDA 테스트는 `pytest -m cuda` 로 분리해 두면 macOS 로컬 CI 에선 자동 skip 되고
+NVIDIA 환경에선 따로 돌릴 수 있다.
