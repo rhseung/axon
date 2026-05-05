@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
-from numpy.typing import DTypeLike
+from axon.dtype import DType
 
 if TYPE_CHECKING:
   from axon.tensor import Tensor
 
 
-class Op[D: DTypeLike](ABC):
+class Op[D: DType](ABC):
   """연산 그래프 노드. 순전파·역전파 모두 `*inputs` 규약으로 `Op`에 두고, 서브클래스는 `_unary` / `_binary` 본체를 구현한다."""
 
   @abstractmethod
@@ -25,5 +25,5 @@ class Op[D: DTypeLike](ABC):
   def __call__(self, *inputs: Tensor[D]) -> Tensor[D]:
     y = self.forward(*inputs)
     y._op = self
-    y._inputs = inputs
+    y._inputs = cast(tuple[Tensor, ...], inputs)
     return y

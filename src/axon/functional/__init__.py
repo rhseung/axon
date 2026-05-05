@@ -8,8 +8,7 @@ from __future__ import annotations
 
 from typing import NoReturn
 
-from numpy.typing import DTypeLike
-
+from axon.dtype import DType
 from axon.tensor import Tensor
 
 __all__ = [
@@ -46,150 +45,150 @@ def _not_implemented(name: str) -> NoReturn:
   raise NotImplementedError(f"axon.functional.{name} is not implemented yet.")
 
 
-def add[D: DTypeLike](a: Tensor[D], b: Tensor[D]):
+def add[D: DType](a: Tensor[D], b: Tensor[D]) -> Tensor[D]:
   from axon.operation.binary import Add
 
-  return Add()(a, b)
+  return Add[D]()(a, b)
 
 
-def mul[D: DTypeLike](a: Tensor[D], b: Tensor[D]):
+def mul[D: DType](a: Tensor[D], b: Tensor[D]) -> Tensor[D]:
   from axon.operation.binary import Mul
 
-  return Mul()(a, b)
+  return Mul[D]()(a, b)
 
 
-def matmul[D: DTypeLike](a: Tensor[D], b: Tensor[D]):
+def matmul[D: DType](a: Tensor[D], b: Tensor[D]) -> Tensor[D]:
   from axon.operation.binary import MatMul
 
-  return MatMul()(a, b)
+  return MatMul[D]()(a, b)
 
 
-def pow[D: DTypeLike](a: Tensor[D], b: Tensor[D]):
+def pow[D: DType](a: Tensor[D], b: Tensor[D]) -> Tensor[D]:
   from axon.operation.binary import Pow
 
-  return Pow()(a, b)
+  return Pow[D]()(a, b)
 
 
-def sub[D: DTypeLike](a: Tensor[D], b: Tensor[D]):
+def sub(a: Tensor, b: Tensor) -> Tensor:
   _ = (a, b)
   _not_implemented("sub")
 
 
-def div[D: DTypeLike](a: Tensor[D], b: Tensor[D]):
+def div(a: Tensor, b: Tensor) -> Tensor:
   _ = (a, b)
   _not_implemented("div")
 
 
-def identity[D: DTypeLike](x: Tensor[D]):
+def identity(x: Tensor) -> Tensor:
   _ = x
   _not_implemented("identity")
 
 
-def neg[D: DTypeLike](x: Tensor[D]):
+def neg(x: Tensor) -> Tensor:
   _ = x
   _not_implemented("neg")
 
 
-def inv[D: DTypeLike](x: Tensor[D]):
+def inv(x: Tensor) -> Tensor:
   _ = x
   _not_implemented("inv")
 
 
-def reshape[D: DTypeLike](x: Tensor[D], shape: tuple[int, ...]):
+def reshape(x: Tensor, shape: tuple[int, ...]) -> Tensor:
   _ = (x, shape)
   _not_implemented("reshape")
 
 
-def transpose[D: DTypeLike](x: Tensor[D], axes: tuple[int, ...] | None = None):
+def transpose(x: Tensor, axes: tuple[int, ...] | None = None) -> Tensor:
   _ = (x, axes)
   _not_implemented("transpose")
 
 
-def squeeze[D: DTypeLike](x: Tensor[D], axis: int | tuple[int, ...] | None = None):
+def squeeze(x: Tensor, axis: int | tuple[int, ...] | None = None) -> Tensor:
   _ = (x, axis)
   _not_implemented("squeeze")
 
 
-def unsqueeze[D: DTypeLike](x: Tensor[D], axis: int):
+def unsqueeze(x: Tensor, axis: int) -> Tensor:
   _ = (x, axis)
   _not_implemented("unsqueeze")
 
 
-def flatten[D: DTypeLike](x: Tensor[D], start_dim: int = 0):
+def flatten(x: Tensor, start_dim: int = 0) -> Tensor:
   _ = (x, start_dim)
   _not_implemented("flatten")
 
 
-def sum[D: DTypeLike](  # noqa: A001
-  x: Tensor[D],
+def sum(
+  x: Tensor,
   axis: int | tuple[int, ...] | None = None,
   *,
   keepdims: bool = False,
-):
+) -> Tensor:
   _ = (x, axis, keepdims)
   _not_implemented("sum")
 
 
-def mean[D: DTypeLike](
-  x: Tensor[D],
+def mean(
+  x: Tensor,
   axis: int | tuple[int, ...] | None = None,
   *,
   keepdims: bool = False,
-):
+) -> Tensor:
   _ = (x, axis, keepdims)
   _not_implemented("mean")
 
 
-def max[D: DTypeLike](  # noqa: A001
-  x: Tensor[D],
+def max(
+  x: Tensor,
   axis: int | tuple[int, ...] | None = None,
   *,
   keepdims: bool = False,
-):
+) -> Tensor:
   _ = (x, axis, keepdims)
   _not_implemented("max")
 
 
-def gather[D: DTypeLike](x: Tensor[D], indices: Tensor[D], axis: int):
+def gather(x: Tensor, indices: Tensor, axis: int) -> Tensor:
   _ = (x, indices, axis)
   _not_implemented("gather")
 
 
-def where[D: DTypeLike](condition: Tensor[D], x: Tensor[D], y: Tensor[D]):
+def where(condition: Tensor, x: Tensor, y: Tensor) -> Tensor:
   _ = (condition, x, y)
   _not_implemented("where")
 
 
-def exp[D: DTypeLike](x: Tensor[D]) -> Tensor[D]:
+def exp(x: Tensor) -> Tensor:
   _ = x
   _not_implemented("exp")
 
 
-def log[D: DTypeLike](x: Tensor[D]) -> Tensor[D]:
+def log(x: Tensor) -> Tensor:
   _ = x
   _not_implemented("log")
 
 
-def sqrt[D: DTypeLike](x: Tensor[D]) -> Tensor[D]:
+def sqrt(x: Tensor) -> Tensor:
   _ = x
   _not_implemented("sqrt")
 
 
-def abs[D: DTypeLike](x: Tensor[D]) -> Tensor[D]:  # noqa: A001
+def abs(x: Tensor) -> Tensor:
   _ = x
   _not_implemented("abs")
 
 
-def sin[D: DTypeLike](x: Tensor[D]) -> Tensor[D]:
+def sin(x: Tensor) -> Tensor:
   _ = x
   _not_implemented("sin")
 
 
-def cos[D: DTypeLike](x: Tensor[D]) -> Tensor[D]:
+def cos(x: Tensor) -> Tensor:
   _ = x
   _not_implemented("cos")
 
 
-def maximum[D: DTypeLike](a: Tensor[D], b: Tensor[D]) -> Tensor[D]:
+def maximum(a: Tensor, b: Tensor) -> Tensor:
   _ = (a, b)
   _not_implemented("maximum")

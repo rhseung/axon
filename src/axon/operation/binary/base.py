@@ -2,13 +2,12 @@ from __future__ import annotations
 
 from abc import abstractmethod
 
-from numpy.typing import DTypeLike
-
+from axon.dtype import DType
 from axon.operation.op import Op
 from axon.tensor import Tensor
 
 
-class BinaryOp[D: DTypeLike](Op[D]):
+class BinaryOp[D: DType](Op[D]):
   """이항 연산: `forward_binary(a, b)`, `backward_binary(grad, a, b)` — `forward`/`backward`는 `*inputs`로 위임."""
 
   @abstractmethod

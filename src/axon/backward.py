@@ -1,14 +1,12 @@
-from numpy.typing import DTypeLike
-
 from axon.parameter import Parameter
 from axon.tensor import Tensor
 
 
-def _topological_order[D: DTypeLike](tensor: Tensor[D]):
-  ret = []
-  visited = set()
+def _topological_order(tensor: Tensor):
+  ret: list[Tensor] = []
+  visited: set[int] = set()
 
-  def dfs(t: Tensor[D]):
+  def dfs(t: Tensor):
     visited.add(id(t))
 
     for t2 in t._inputs:
@@ -22,8 +20,8 @@ def _topological_order[D: DTypeLike](tensor: Tensor[D]):
   return reversed(ret)
 
 
-def backward[D: DTypeLike](loss: Tensor[D]):
-  grads: dict[int, Tensor[D]] = {}
+def backward(loss: Tensor):
+  grads: dict[int, Tensor] = {}
   grads[id(loss)] = Tensor.ones_like(loss)
 
   for t in _topological_order(loss):

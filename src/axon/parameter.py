@@ -2,16 +2,14 @@ from __future__ import annotations
 
 from typing import Any
 
-import numpy as np
-from numpy.typing import DTypeLike, NDArray
-
+from axon.dtype import DType
 from axon.tensor import Tensor
 
 
-class Parameter[D: DTypeLike](Tensor[D]):
+class Parameter[D: DType](Tensor[D]):
   grad: Tensor[D]
 
-  def __init__(self, data: NDArray[Any], *, dtype: DTypeLike = np.float32):
+  def __init__(self, data: Any, *, dtype: type[DType] = DType.FLOAT32):
     super().__init__(data, dtype=dtype)
     self.zero_grad()
 

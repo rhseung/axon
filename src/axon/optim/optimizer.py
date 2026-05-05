@@ -20,6 +20,10 @@ class Optimizer(ABC):
   def parameters(self):
     return deepcopy(self._parameters)
 
+  def zero_grad(self):
+    for p in self._parameters:
+      p.zero_grad()
+
   def step(self):
     for p in self._parameters:
       self.optimize(p)

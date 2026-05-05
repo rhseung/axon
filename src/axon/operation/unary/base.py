@@ -2,13 +2,12 @@ from __future__ import annotations
 
 from abc import abstractmethod
 
-from numpy.typing import DTypeLike
-
+from axon.dtype import DType
 from axon.operation.op import Op
 from axon.tensor import Tensor
 
 
-class UnaryOp[D: DTypeLike](Op[D]):
+class UnaryOp[D: DType](Op[D]):
   """단항 연산 기본 클래스."""
 
   @abstractmethod
