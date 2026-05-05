@@ -1,41 +1,53 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from axon.backend import xp
+from axon.node import Node
 from axon.parameter import Parameter
-from axon.tensor import Tensor
+
+if TYPE_CHECKING:
+  from axon.backend.protocol import Array
 
 
-def _topological_order(tensor: Tensor):
-  ret: list[Tensor] = []
+def _topological_order(node: Node):
+  ret: list[Node] = []
   visited: set[int] = set()
 
-  def dfs(t: Tensor):
-    visited.add(id(t))
+  def dfs(n: Node):
+    visited.add(id(n))
 
-    for t2 in t._inputs:
-      if id(t2) not in visited:
-        dfs(t2)
+    for n2 in n.inputs:
+      if id(n2) not in visited:
+        dfs(n2)
 
-    ret.append(t)
+    ret.append(n)
 
-  dfs(tensor)
+  dfs(node)
 
   return reversed(ret)
 
 
-def backward(loss: Tensor):
-  grads: dict[int, Tensor] = {}
-  grads[id(loss)] = Tensor.ones_like(loss)
+def backward(loss: Node):
+  grads: dict[int, Array] = {}
+  grads[id(loss)] = xp.ones_like(loss._data)
 
-  for t in _topological_order(loss):
-    grad = grads.get(id(t))
-    if grad is None:  # 위상 정렬하기에 t는 loss부터 나와서 괜찮음.
+  for n in _topological_order(loss):
+    grad = grads.get(id(n))
+    if grad is None:  # 위상 정렬하기에 n은 loss부터 나와서 괜찮음.
       continue
 
-    if t._op is None:
+    if n.op is None:
       continue
 
-    input_grads = t._op.backward(grad, *t._inputs)
+    inputs = tuple(inp._data for inp in n.inputs)
+    input_grads = n.op.backward(grad, *inputs)
 
-    for inp, inp_grad in zip(t._inputs, input_grads):
-      grads[id(inp)] = grads.get(id(inp), Tensor.zeros_like(inp)) + inp_grad
+    for inp, inp_grad in zip(n.inputs, input_grads):
+      if not inp.requires_grad:
+        continue
+
+      grads[id(inp)] = grads.get(id(inp), xp.zeros_like(inp._data)) + inp_grad
 
       if isinstance(inp, Parameter):
         inp.grad += inp_grad

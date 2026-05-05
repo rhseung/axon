@@ -1,9 +1,4 @@
 {
-  "workbench.iconTheme": "flow-dim",
-  "flow-icons.folders.associations": {
-    "functional": "folder-function",
-    "src/axon/functional": "folder-function"
-  },
   "cSpell.words": [
     "Autograd",
     "keepdims",
@@ -23,5 +18,12 @@
   "basedpyright.analysis.diagnosticMode": "off",
   "basedpyright.disableLanguageServices": true,
   "basedpyright.disableOrganizeImports": true,
-  "python.analysis.typeCheckingMode": "off"
+  "python.analysis.typeCheckingMode": "off",
+  "flow-icons.folders.associations": {
+    "functional": "functions",
+    "operation": "functions",
+    "backend": "server",
+    "optim": "tools",
+    "net": "components"
+  }
 }

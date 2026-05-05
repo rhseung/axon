@@ -290,7 +290,9 @@ def test_split():
     return xp.concatenate(parts, axis=0)
 
   def split_axis(xp):
-    parts = xp.split(xp.from_numpy(np.arange(12, dtype=np.float32).reshape(3, 4)), 2, axis=1)
+    parts = xp.split(
+      xp.from_numpy(np.arange(12, dtype=np.float32).reshape(3, 4)), 2, axis=1
+    )
     return xp.stack(parts, axis=0)
 
   _both(split_int)
@@ -625,7 +627,9 @@ def test_scalar_0d():
   """0-d 스칼라 텐서."""
   _both(lambda xp: xp.array(5.0, dtype=DType.FLOAT32))
   _both(lambda xp: xp.exp(xp.array(1.0, dtype=DType.FLOAT32)))
-  _both(lambda xp: xp.array(3.0, dtype=DType.FLOAT32) + xp.array(4.0, dtype=DType.FLOAT32))
+  _both(
+    lambda xp: xp.array(3.0, dtype=DType.FLOAT32) + xp.array(4.0, dtype=DType.FLOAT32)
+  )
 
 
 def test_negative_zero():

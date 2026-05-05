@@ -1,13 +1,13 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
+from axon.node import Node
 from axon.parameter import Parameter
-from axon.tensor import Tensor
 
 
 class Net(ABC):
   @abstractmethod
-  def forward(self, x: Tensor[Any]) -> Tensor[Any]: ...
+  def forward(self, x: Node[Any]) -> Node[Any]: ...
 
   def parameters(self) -> list[Parameter]:
     parameters: list[Parameter] = []
