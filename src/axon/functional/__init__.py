@@ -9,11 +9,14 @@ from axon.var import Constant, Var, Node
 
 __all__ = [
   "add",
+  "cross_entropy",
   "div",
   "matmul",
+  "mse",
   "mul",
   "neg",
   "pow",
+  "sigmoid",
   "sub",
 ]
 
@@ -89,6 +92,36 @@ def neg[D: DType](a: Node[D] | Scalar) -> Node[D]:
   return Neg[D]().apply(a)
 
 
+def sigmoid[D: DType](x: Node[D]) -> Node[D]:
+  from axon.operation import Sigmoid
+
+  return Sigmoid[D]().apply(x)
+
+
 def sub[D: DType](a: Node[D] | Scalar, b: Node[D] | Scalar) -> Node[D]:
   a, b = _to_node_pair(a, b)
   return add(a, neg(b))
+
+
+def cross_entropy[D: DType](
+  logits: Node[D],
+  target: Node[Any] | Any,
+  *,
+  reduction: str = "mean",
+) -> Node[D]:
+  """target 은 `(N,)` int 인덱스 (Constant 또는 raw array)."""
+  from axon.operation import CrossEntropy
+
+  target_arr = target._data if isinstance(target, Node) else target
+  return CrossEntropy[D](target=target_arr, reduction=reduction).apply(logits)
+
+
+def mse[D: DType](
+  pred: Node[D],
+  target: Node[D],
+  *,
+  reduction: str = "mean",
+) -> Node[D]:
+  from axon.operation import MSE
+
+  return MSE[D](reduction=reduction).apply(pred, target)
