@@ -51,11 +51,7 @@ class NumpyBackend:
   random: RandomProtocol
 
   def __init__(self) -> None:
-    # native 반환 타입 (np.ndarray) 이 Array Protocol 의 Any 반환과 구조적
-    # 매칭이 안 되는 경우가 있어 cast 로 명시 위임 (BackendProtocol cast 와 동일 사유).
     self.random = cast(RandomProtocol, _NumpyRandom())
-
-  # --- 생성 ---
   def array(self, data: Any, dtype: type[DType] = DType.FLOAT32):
     return np.asarray(data, dtype=to_backend_dtype(dtype, "numpy"))
 
@@ -95,8 +91,6 @@ class NumpyBackend:
     if stop is None:
       return np.arange(start, dtype=to_backend_dtype(dtype, "numpy"))
     return np.arange(start, stop, step, dtype=to_backend_dtype(dtype, "numpy"))
-
-  # --- 수학 함수 ---
   def exp(self, x):
     return np.exp(x)
 
@@ -135,8 +129,6 @@ class NumpyBackend:
 
   def power(self, a, b):
     return np.power(a, b)
-
-  # --- 축소 ---
   def sum(self, x, axis=None, keepdims=False):
     return np.sum(x, axis=axis, keepdims=keepdims)
 
@@ -154,8 +146,6 @@ class NumpyBackend:
 
   def norm(self, x, ord=None, axis=None, keepdims=False):
     return np.linalg.norm(x, ord=ord, axis=axis, keepdims=keepdims)
-
-  # --- 형상 ---
   def reshape(self, x, shape):
     return np.reshape(x, shape)
 
@@ -182,15 +172,11 @@ class NumpyBackend:
 
   def flip(self, x, axis=None):
     return np.flip(x, axis=axis)
-
-  # --- 선형대수 ---
   def matmul(self, a, b):
     return np.matmul(a, b)
 
   def einsum(self, subscripts, *operands):
     return np.einsum(subscripts, *operands)
-
-  # --- 인덱싱 ---
   def where(self, condition, x, y):
     return np.where(condition, x, y)
 
@@ -202,8 +188,6 @@ class NumpyBackend:
 
   def triu(self, x, k=0):
     return np.triu(x, k=k)
-
-  # --- 정렬 / argmax 류 ---
   def sort(self, x, axis=-1):
     return np.sort(x, axis=axis)
 
@@ -215,16 +199,10 @@ class NumpyBackend:
 
   def argmin(self, x, axis=None, keepdims=False):
     return np.argmin(x, axis=axis, keepdims=keepdims)
-
-  # --- 누적 ---
   def cumsum(self, x, axis=None):
     return np.cumsum(x, axis=axis)
-
-  # --- 패딩 ---
   def pad(self, x, pad_width, constant_values=0.0):
     return np.pad(x, pad_width, mode="constant", constant_values=constant_values)
-
-  # --- 변환 / 평가 ---
   def to_numpy(self, x):
     return np.asarray(x)
 

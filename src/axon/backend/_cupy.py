@@ -1,8 +1,4 @@
-"""CuPy 백엔드.
-
-NumPy 와 API 가 거의 동일하므로 위임 패턴이 단순하다.
-로컬 (macOS) 에서 검증 불가 — Colab / Windows / 외장 GPU 환경에서 `pytest -m cuda`.
-"""
+"""CuPy 백엔드. macOS 에서 검증 불가 — `pytest -m cuda` 로 분리."""
 
 from __future__ import annotations
 
@@ -63,8 +59,6 @@ class CuPyBackend:
 
     self._cp = cp
     self.random = cast(RandomProtocol, _CuPyRandom())
-
-  # --- 생성 ---
   def array(self, data: Any, dtype: type[DType] = DType.FLOAT32):
     return self._cp.asarray(data, dtype=to_backend_dtype(dtype, "cupy"))
 
@@ -93,8 +87,6 @@ class CuPyBackend:
     if stop is None:
       return self._cp.arange(start, dtype=to_backend_dtype(dtype, "cupy"))
     return self._cp.arange(start, stop, step, dtype=to_backend_dtype(dtype, "cupy"))
-
-  # --- 수학 함수 ---
   def exp(self, x):
     return self._cp.exp(x)
 
@@ -133,8 +125,6 @@ class CuPyBackend:
 
   def power(self, a, b):
     return self._cp.power(a, b)
-
-  # --- 축소 ---
   def sum(self, x, axis=None, keepdims=False):
     return self._cp.sum(x, axis=axis, keepdims=keepdims)
 
@@ -152,8 +142,6 @@ class CuPyBackend:
 
   def norm(self, x, ord=None, axis=None, keepdims=False):
     return self._cp.linalg.norm(x, ord=ord, axis=axis, keepdims=keepdims)
-
-  # --- 형상 ---
   def reshape(self, x, shape):
     return self._cp.reshape(x, shape)
 
@@ -180,15 +168,11 @@ class CuPyBackend:
 
   def flip(self, x, axis=None):
     return self._cp.flip(x, axis=axis)
-
-  # --- 선형대수 ---
   def matmul(self, a, b):
     return self._cp.matmul(a, b)
 
   def einsum(self, subscripts, *operands):
     return self._cp.einsum(subscripts, *operands)
-
-  # --- 인덱싱 ---
   def where(self, condition, x, y):
     return self._cp.where(condition, x, y)
 
@@ -200,8 +184,6 @@ class CuPyBackend:
 
   def triu(self, x, k=0):
     return self._cp.triu(x, k=k)
-
-  # --- 정렬 / argmax 류 ---
   def sort(self, x, axis=-1):
     return self._cp.sort(x, axis=axis)
 
@@ -213,16 +195,10 @@ class CuPyBackend:
 
   def argmin(self, x, axis=None, keepdims=False):
     return self._cp.argmin(x, axis=axis, keepdims=keepdims)
-
-  # --- 누적 ---
   def cumsum(self, x, axis=None):
     return self._cp.cumsum(x, axis=axis)
-
-  # --- 패딩 ---
   def pad(self, x, pad_width, constant_values=0.0):
     return self._cp.pad(x, pad_width, mode="constant", constant_values=constant_values)
-
-  # --- 변환 / 평가 ---
   def to_numpy(self, x):
     return self._cp.asnumpy(x)
 

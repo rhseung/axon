@@ -1,19 +1,4 @@
-"""MLX 백엔드.
-
-MLX 0.31+ 는 `__setitem__`, `+=`, `__iadd__` 등을 native 로 지원하므로 별도 래퍼가 필요없다.
-`mx.array` 를 그대로 `Array` 프로토콜로 쓰고, 백엔드 메서드만 위임한다.
-
-NumPy 와의 차이:
-- **Lazy evaluation**: `mx.eval()` 호출 전엔 실제 계산이 일어나지 않음. `to_numpy()` 가 호출 시점에 강제 eval.
-- **일부 함수 부재**: `mx.flip` 같은 건 없음. 슬라이싱 등으로 우회.
-
-## 자동 async_eval
-
-모든 op 의 반환을 `mx.async_eval` 로 schedule — user code / framework 어디에도
-backend-specific 호출이 노출되지 않음. Python 이 다음 op 빌드하는 동안 GPU 가
-이전 op 실행. 결과적으로 사용자는 NumPy 와 완전히 동일한 API 로 lazy graph 자동
-관리의 이득을 받음.
-"""
+"""MLX 백엔드. lazy graph + 자동 async_eval — user 는 NumPy 와 동일 API."""
 
 from __future__ import annotations
 
@@ -85,8 +70,6 @@ class MLXBackend:
 
   def __init__(self) -> None:
     self.random = cast(RandomProtocol, _MLXRandom())
-
-  # --- 생성 ---
   def array(self, data: Any, dtype: type[DType] = DType.FLOAT32):
     return mx.array(data, dtype=to_backend_dtype(dtype, "mlx"))
 
@@ -115,8 +98,6 @@ class MLXBackend:
     if stop is None:
       return mx.arange(start, dtype=to_backend_dtype(dtype, "mlx"))
     return mx.arange(start, stop, step, dtype=to_backend_dtype(dtype, "mlx"))
-
-  # --- 수학 함수 ---
   def exp(self, x):
     return mx.exp(x)
 
@@ -155,8 +136,6 @@ class MLXBackend:
 
   def power(self, a, b):
     return mx.power(a, b)
-
-  # --- 축소 ---
   def sum(self, x, axis=None, keepdims=False):
     return mx.sum(x, axis=axis, keepdims=keepdims)
 
@@ -174,8 +153,6 @@ class MLXBackend:
 
   def norm(self, x, ord=None, axis=None, keepdims=False):
     return mx.linalg.norm(x, ord=ord, axis=axis, keepdims=keepdims)
-
-  # --- 형상 ---
   def reshape(self, x, shape):
     return mx.reshape(x, shape)
 
@@ -201,7 +178,7 @@ class MLXBackend:
     return list(mx.split(x, indices_or_sections, axis=axis))
 
   def flip(self, x, axis=None):
-    """mlx 에는 mx.flip 이 없으므로 슬라이싱으로 구현."""
+    # mlx 에 mx.flip 이 없어 슬라이싱으로 구현.
     if axis is None:
       axes = tuple(range(x.ndim))
     elif isinstance(axis, int):
@@ -212,15 +189,11 @@ class MLXBackend:
     for ax in axes:
       slicer[ax] = slice(None, None, -1)
     return x[tuple(slicer)]
-
-  # --- 선형대수 ---
   def matmul(self, a, b):
     return mx.matmul(a, b)
 
   def einsum(self, subscripts, *operands):
     return mx.einsum(subscripts, *operands)
-
-  # --- 인덱싱 ---
   def where(self, condition, x, y):
     return mx.where(condition, x, y)
 
@@ -232,8 +205,6 @@ class MLXBackend:
 
   def triu(self, x, k=0):
     return mx.triu(x, k=k)
-
-  # --- 정렬 / argmax 류 ---
   def sort(self, x, axis=-1):
     return mx.sort(x, axis=axis)
 
@@ -250,16 +221,10 @@ class MLXBackend:
     if axis is None:
       return mx.argmin(x, keepdims=keepdims)
     return mx.argmin(x, axis=axis, keepdims=keepdims)
-
-  # --- 누적 ---
   def cumsum(self, x, axis=None):
     return mx.cumsum(x, axis=axis)
-
-  # --- 패딩 ---
   def pad(self, x, pad_width, constant_values=0.0):
     return mx.pad(x, pad_width, constant_values=constant_values)
-
-  # --- 변환 / 평가 ---
   def to_numpy(self, x):
     mx.eval(x)
     return np.array(x)
@@ -271,25 +236,14 @@ class MLXBackend:
     mx.eval(*arrays)
 
   def async_eval(self, *arrays):
-    """eval 과 달리 GPU 작업을 schedule 만 하고 return — Python 이 다음 단계로 진행 가능.
-    실제 값 접근 (to_numpy, float() 등) 시 자동 sync.
-
-    public 메서드는 모두 _ae 로 자동 처리되므로 보통 직접 호출할 일은 없다.
-    """
     mx.async_eval(*arrays)
 
 
-# --- 자동 async_eval 적용 ---
-# 모든 op 에 async_eval 을 걸면 op 별 kernel launch 가 발생해 fusion 기회를 잃는다
-# (실측: MLP MNIST/Fashion 에서 NumPy 보다 느려짐).
-# 자연스러운 *graph boundary* 인 reduction / argmax / norm 류에만 적용:
-#   - 이 op 들은 보통 chain 의 끝 (loss, accuracy, gradient norm 등) 에 위치
-#   - async_eval 시 chain 전체가 한 번에 evaluate 되며 그 경로에서 fusion 발생
-#   - 다른 op (matmul, 산술, indexing) 는 lazy 유지 → 다음 reduction 까지 fuse 됨
-# 결과: user code / framework 어느 레이어에도 backend-specific 호출 없이 자동 처리.
+# graph boundary (reduction / argmax) 에만 async_eval — 모든 op 에 걸면 fusion
+# 기회를 잃어 NumPy 보다 느려짐. 끝 op 에서만 chain 전체가 한 번에 evaluate.
 _AUTO_AE_METHODS = {
-  "sum", "mean", "var", "max", "min", "norm",      # reductions
-  "argmax", "argmin",                              # argmax 류
+  "sum", "mean", "var", "max", "min", "norm",
+  "argmax", "argmin",
 }
 
 
