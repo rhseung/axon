@@ -1,29 +1,19 @@
-from abc import ABC, abstractmethod
-from copy import deepcopy
+from __future__ import annotations
 
-from axon.parameter import Parameter
+from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+  from axon.var import Var
 
 
 class Optimizer(ABC):
-  def __init__(self, parameters: list[Parameter], lr: float):
-    self._parameters = parameters
-    self._lr = lr
+  """단일 `Var` 의 update 정책 + per-weight state. 한 인스턴스는 한 Var 를 위한
+  거 — 공유하면 momentum / Adam state 가 섞임. `Net.optimizer` default 가 자동
+  deepcopy 부착.
+  """
 
   @abstractmethod
-  def optimize(self, p: Parameter): ...
-
-  @property
-  def lr(self):
-    return self._lr
-
-  @property
-  def parameters(self):
-    return deepcopy(self._parameters)
-
-  def zero_grad(self):
-    for p in self._parameters:
-      p.zero_grad()
-
-  def step(self):
-    for p in self._parameters:
-      self.optimize(p)
+  def update(self, var: Var) -> None:
+    """`var._data` 를 `var.grad` 로 in-place update."""
+    ...
