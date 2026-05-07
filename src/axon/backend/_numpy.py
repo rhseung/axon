@@ -52,6 +52,7 @@ class NumpyBackend:
 
   def __init__(self) -> None:
     self.random = cast(RandomProtocol, _NumpyRandom())
+
   def array(self, data: Any, dtype: type[DType] = DType.FLOAT32):
     return np.asarray(data, dtype=to_backend_dtype(dtype, "numpy"))
 
@@ -91,6 +92,7 @@ class NumpyBackend:
     if stop is None:
       return np.arange(start, dtype=to_backend_dtype(dtype, "numpy"))
     return np.arange(start, stop, step, dtype=to_backend_dtype(dtype, "numpy"))
+
   def exp(self, x):
     return np.exp(x)
 
@@ -129,6 +131,7 @@ class NumpyBackend:
 
   def power(self, a, b):
     return np.power(a, b)
+
   def sum(self, x, axis=None, keepdims=False):
     return np.sum(x, axis=axis, keepdims=keepdims)
 
@@ -146,6 +149,7 @@ class NumpyBackend:
 
   def norm(self, x, ord=None, axis=None, keepdims=False):
     return np.linalg.norm(x, ord=ord, axis=axis, keepdims=keepdims)
+
   def reshape(self, x, shape):
     return np.reshape(x, shape)
 
@@ -172,11 +176,13 @@ class NumpyBackend:
 
   def flip(self, x, axis=None):
     return np.flip(x, axis=axis)
+
   def matmul(self, a, b):
     return np.matmul(a, b)
 
   def einsum(self, subscripts, *operands):
     return np.einsum(subscripts, *operands)
+
   def where(self, condition, x, y):
     return np.where(condition, x, y)
 
@@ -188,6 +194,7 @@ class NumpyBackend:
 
   def triu(self, x, k=0):
     return np.triu(x, k=k)
+
   def sort(self, x, axis=-1):
     return np.sort(x, axis=axis)
 
@@ -199,10 +206,13 @@ class NumpyBackend:
 
   def argmin(self, x, axis=None, keepdims=False):
     return np.argmin(x, axis=axis, keepdims=keepdims)
+
   def cumsum(self, x, axis=None):
     return np.cumsum(x, axis=axis)
+
   def pad(self, x, pad_width, constant_values=0.0):
     return np.pad(x, pad_width, mode="constant", constant_values=constant_values)
+
   def to_numpy(self, x):
     return np.asarray(x)
 

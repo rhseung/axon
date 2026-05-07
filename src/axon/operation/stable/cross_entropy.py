@@ -18,7 +18,9 @@ class CrossEntropy[D: DType](Op[D]):
 
   def __init__(self, target: Array, reduction: str = "mean"):
     if reduction not in ("mean", "sum", "none"):
-      raise ValueError(f"reduction 은 mean/sum/none 중 하나여야 합니다. got {reduction!r}")
+      raise ValueError(
+        f"reduction 은 mean/sum/none 중 하나여야 합니다. got {reduction!r}"
+      )
     self.target = target
     self.reduction = reduction
 

@@ -5,7 +5,7 @@ from typing import Any, cast
 from axon.backend import xp
 from axon.dtype import DType, promote
 from axon.scalar import Scalar
-from axon.var import Constant, Var, Node
+from axon.var import Constant, Node, Var
 
 __all__ = [
   "add",

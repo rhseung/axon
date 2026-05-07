@@ -70,6 +70,7 @@ class MLXBackend:
 
   def __init__(self) -> None:
     self.random = cast(RandomProtocol, _MLXRandom())
+
   def array(self, data: Any, dtype: type[DType] = DType.FLOAT32):
     return mx.array(data, dtype=to_backend_dtype(dtype, "mlx"))
 
@@ -98,6 +99,7 @@ class MLXBackend:
     if stop is None:
       return mx.arange(start, dtype=to_backend_dtype(dtype, "mlx"))
     return mx.arange(start, stop, step, dtype=to_backend_dtype(dtype, "mlx"))
+
   def exp(self, x):
     return mx.exp(x)
 
@@ -136,6 +138,7 @@ class MLXBackend:
 
   def power(self, a, b):
     return mx.power(a, b)
+
   def sum(self, x, axis=None, keepdims=False):
     return mx.sum(x, axis=axis, keepdims=keepdims)
 
@@ -153,6 +156,7 @@ class MLXBackend:
 
   def norm(self, x, ord=None, axis=None, keepdims=False):
     return mx.linalg.norm(x, ord=ord, axis=axis, keepdims=keepdims)
+
   def reshape(self, x, shape):
     return mx.reshape(x, shape)
 
@@ -189,11 +193,13 @@ class MLXBackend:
     for ax in axes:
       slicer[ax] = slice(None, None, -1)
     return x[tuple(slicer)]
+
   def matmul(self, a, b):
     return mx.matmul(a, b)
 
   def einsum(self, subscripts, *operands):
     return mx.einsum(subscripts, *operands)
+
   def where(self, condition, x, y):
     return mx.where(condition, x, y)
 
@@ -205,6 +211,7 @@ class MLXBackend:
 
   def triu(self, x, k=0):
     return mx.triu(x, k=k)
+
   def sort(self, x, axis=-1):
     return mx.sort(x, axis=axis)
 
@@ -221,10 +228,13 @@ class MLXBackend:
     if axis is None:
       return mx.argmin(x, keepdims=keepdims)
     return mx.argmin(x, axis=axis, keepdims=keepdims)
+
   def cumsum(self, x, axis=None):
     return mx.cumsum(x, axis=axis)
+
   def pad(self, x, pad_width, constant_values=0.0):
     return mx.pad(x, pad_width, constant_values=constant_values)
+
   def to_numpy(self, x):
     mx.eval(x)
     return np.array(x)
@@ -242,8 +252,14 @@ class MLXBackend:
 # graph boundary (reduction / argmax) 에만 async_eval — 모든 op 에 걸면 fusion
 # 기회를 잃어 NumPy 보다 느려짐. 끝 op 에서만 chain 전체가 한 번에 evaluate.
 _AUTO_AE_METHODS = {
-  "sum", "mean", "var", "max", "min", "norm",
-  "argmax", "argmin",
+  "sum",
+  "mean",
+  "var",
+  "max",
+  "min",
+  "norm",
+  "argmax",
+  "argmin",
 }
 
 

@@ -59,6 +59,7 @@ class CuPyBackend:
 
     self._cp = cp
     self.random = cast(RandomProtocol, _CuPyRandom())
+
   def array(self, data: Any, dtype: type[DType] = DType.FLOAT32):
     return self._cp.asarray(data, dtype=to_backend_dtype(dtype, "cupy"))
 
@@ -87,6 +88,7 @@ class CuPyBackend:
     if stop is None:
       return self._cp.arange(start, dtype=to_backend_dtype(dtype, "cupy"))
     return self._cp.arange(start, stop, step, dtype=to_backend_dtype(dtype, "cupy"))
+
   def exp(self, x):
     return self._cp.exp(x)
 
@@ -125,6 +127,7 @@ class CuPyBackend:
 
   def power(self, a, b):
     return self._cp.power(a, b)
+
   def sum(self, x, axis=None, keepdims=False):
     return self._cp.sum(x, axis=axis, keepdims=keepdims)
 
@@ -142,6 +145,7 @@ class CuPyBackend:
 
   def norm(self, x, ord=None, axis=None, keepdims=False):
     return self._cp.linalg.norm(x, ord=ord, axis=axis, keepdims=keepdims)
+
   def reshape(self, x, shape):
     return self._cp.reshape(x, shape)
 
@@ -168,11 +172,13 @@ class CuPyBackend:
 
   def flip(self, x, axis=None):
     return self._cp.flip(x, axis=axis)
+
   def matmul(self, a, b):
     return self._cp.matmul(a, b)
 
   def einsum(self, subscripts, *operands):
     return self._cp.einsum(subscripts, *operands)
+
   def where(self, condition, x, y):
     return self._cp.where(condition, x, y)
 
@@ -184,6 +190,7 @@ class CuPyBackend:
 
   def triu(self, x, k=0):
     return self._cp.triu(x, k=k)
+
   def sort(self, x, axis=-1):
     return self._cp.sort(x, axis=axis)
 
@@ -195,10 +202,13 @@ class CuPyBackend:
 
   def argmin(self, x, axis=None, keepdims=False):
     return self._cp.argmin(x, axis=axis, keepdims=keepdims)
+
   def cumsum(self, x, axis=None):
     return self._cp.cumsum(x, axis=axis)
+
   def pad(self, x, pad_width, constant_values=0.0):
     return self._cp.pad(x, pad_width, mode="constant", constant_values=constant_values)
+
   def to_numpy(self, x):
     return self._cp.asnumpy(x)
 

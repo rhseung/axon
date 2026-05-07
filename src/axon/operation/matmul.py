@@ -31,8 +31,7 @@ class MatMul[D: DType](Op[D]):
     a, b = inputs
     if a.ndim < 2 or b.ndim < 2:
       raise ShapeError(
-        f"MatMul: 두 입력 모두 ndim >= 2 필요. "
-        f"a.shape={a.shape}, b.shape={b.shape}"
+        f"MatMul: 두 입력 모두 ndim >= 2 필요. a.shape={a.shape}, b.shape={b.shape}"
       )
     if a.shape[-1] != b.shape[-2]:
       raise ShapeError(

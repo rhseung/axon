@@ -17,15 +17,22 @@ import axon
 from axon import Constant, Node, Var, net
 from axon.optim import SGD
 
-
 _CIFAR_URL = "https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz"
 _CACHE_DIR = os.path.expanduser("~/.cache/axon")
 _TAR_PATH = os.path.join(_CACHE_DIR, "cifar-10-python.tar.gz")
 _EXTRACT_DIR = os.path.join(_CACHE_DIR, "cifar-10-batches-py")
 
 CLASSES = (
-  "airplane", "automobile", "bird", "cat", "deer",
-  "dog", "frog", "horse", "ship", "truck",
+  "airplane",
+  "automobile",
+  "bird",
+  "cat",
+  "deer",
+  "dog",
+  "frog",
+  "horse",
+  "ship",
+  "truck",
 )
 
 
@@ -48,8 +55,10 @@ def _load_batch(path: str) -> tuple[NDArray[np.uint8], NDArray[np.int64]]:
 
 
 def load_cifar10() -> tuple[
-  NDArray[np.float32], NDArray[np.int64],
-  NDArray[np.float32], NDArray[np.int64],
+  NDArray[np.float32],
+  NDArray[np.int64],
+  NDArray[np.float32],
+  NDArray[np.int64],
 ]:
   _download_cifar()
   xs, ts = [], []
