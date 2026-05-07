@@ -15,8 +15,15 @@ class Add[D: DType](BinaryOp[D]):
     return a + b
 
   def backward_binary(
-    self, grad: Array[D], a: Array[D], b: Array[D]
-  ) -> tuple[Array[D], Array[D]]:
+    self,
+    grad: Array[D],
+    a: Array[D],
+    b: Array[D],
+    *,
+    needs_grad: tuple[bool, bool],
+  ) -> tuple[Array[D] | None, Array[D] | None]:
     """덧셈의 체인룰. y = a + b 이므로 ∂y/∂a = ∂y/∂b = 1, grad 그대로 전달."""
-    _ = (a, b)
-    return (grad, grad)
+    return (
+      grad if needs_grad[0] else None,
+      grad if needs_grad[1] else None,
+    )

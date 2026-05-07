@@ -41,10 +41,11 @@ def backward(loss: Node):
       continue
 
     inputs = tuple(inp._data for inp in n.inputs)
-    input_grads = n.op.backward(grad, *inputs)
+    needs_grad = tuple(inp.requires_grad for inp in n.inputs)
+    input_grads = n.op.backward(grad, *inputs, needs_grad=needs_grad)
 
     for inp, inp_grad in zip(n.inputs, input_grads):
-      if not inp.requires_grad:
+      if not inp.requires_grad or inp_grad is None:
         continue
 
       grads[id(inp)] = grads.get(id(inp), xp.zeros_like(inp._data)) + inp_grad

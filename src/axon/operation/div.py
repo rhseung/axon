@@ -21,10 +21,18 @@ class Div[D: DType](BinaryOp[D]):
     return a / b
 
   def backward_binary(
-    self, grad: Array[D], a: Array[D], b: Array[D]
-  ) -> tuple[Array[D], Array[D]]:
+    self,
+    grad: Array[D],
+    a: Array[D],
+    b: Array[D],
+    *,
+    needs_grad: tuple[bool, bool],
+  ) -> tuple[Array[D] | None, Array[D] | None]:
     """y = a / b 의 체인룰 (원소별).
 
     ∂y/∂a = 1 / b, ∂y/∂b = -a / b**2.
     """
-    return (grad / b, -grad * a / (b * b))
+    return (
+      grad / b if needs_grad[0] else None,
+      -grad * a / (b * b) if needs_grad[1] else None,
+    )

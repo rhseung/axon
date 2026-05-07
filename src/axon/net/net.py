@@ -39,3 +39,6 @@ class Net(ABC):
 
     collect(self)
     return parameters
+
+
+# TODO: format, __str__, __repr__ 등 디버깅 편의 메타데이터 (예: 레이어 이름) 추가 고려

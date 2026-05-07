@@ -4,7 +4,7 @@ from axon.operation.matmul import MatMul
 from axon.operation.mul import Mul
 from axon.operation.neg import Neg
 from axon.operation.op import BinaryOp, Op, UnaryOp
-from axon.operation.pow import Pow, PowConstBase, PowConstExp
+from axon.operation.pow import Pow
 
 __all__ = [
   "Add",
@@ -15,7 +15,5 @@ __all__ = [
   "Neg",
   "Op",
   "Pow",
-  "PowConstBase",
-  "PowConstExp",
   "UnaryOp",
 ]

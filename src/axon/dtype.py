@@ -72,3 +72,52 @@ DType.FLOAT64 = _FLOAT64
 DType.INT32 = _INT32
 DType.INT64 = _INT64
 DType.BOOL = _BOOL
+
+
+# ---------------------------------------------------------------------------
+# Type promotion
+# ---------------------------------------------------------------------------
+
+# rank 가 클수록 더 wide 한 dtype. 같은 비트 폭 중에서는 BFLOAT16 이 FLOAT16 보다
+# 다이나믹 레인지가 넓어 한 단계 위에 둠 (NumPy 의 정확한 룰은 아니지만 ML 실용성 기준).
+_RANK: dict[type[DType], int] = {
+  _BOOL: 0,
+  _INT32: 1,
+  _INT64: 2,
+  _FLOAT16: 3,
+  _BFLOAT16: 4,
+  _FLOAT32: 5,
+  _FLOAT64: 6,
+}
+
+
+def _scalar_dtype(x: object) -> type[DType]:
+  """Python scalar → DType 매핑. bool/int/float 외에는 TypeError."""
+  if isinstance(x, bool):
+    return DType.BOOL
+  if isinstance(x, int):
+    return DType.INT64
+  if isinstance(x, float):
+    return DType.FLOAT32
+  raise TypeError(f"promote: scalar 가 아님. {type(x).__name__}")
+
+
+def promote(*items: type[DType] | int | float | bool) -> type[DType]:
+  """입력들의 promoted dtype — strong-typing 식 numpy promotion.
+
+  - Python `bool` → `BOOL`, `int` → `INT64`, `float` → `FLOAT32` 매핑
+    (axon 의 부동소수 default 가 FLOAT32 라 numpy 의 FLOAT64 와 다름)
+  - 결과: 모든 input 중 가장 wide 한 dtype
+    `BOOL < INT32 < INT64 < FLOAT16 < BFLOAT16 < FLOAT32 < FLOAT64`
+
+  사용 예:
+    `promote(DType.FLOAT32, 2)` → `FLOAT32`     (FLOAT32 vs INT64)
+    `promote(DType.INT32, 0.5)` → `FLOAT32`     (INT32 vs FLOAT32)
+    `promote(2, 3)` → `INT64`                   (둘 다 Python int)
+    `promote(2, 0.5)` → `FLOAT32`               (int vs float)
+  """
+  dtypes = [
+    x if isinstance(x, type) and issubclass(x, DType) else _scalar_dtype(x)
+    for x in items
+  ]
+  return max(dtypes, key=lambda d: _RANK[d])
